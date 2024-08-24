@@ -26,7 +26,7 @@ Before you begin, ensure you have the following installed on your machine:
 
 ### Clone the project repository from GitHub:
 
-git clone https://github.com/your-username/tweetai.git
+git clone https://github.com/Codedbx/tweetai.git
 cd tweetai
 
 ### Navigate to the Backend Directory
