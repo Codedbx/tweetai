@@ -58,7 +58,7 @@ const fetchAutobotCount = async () => {
 onMounted(() => {
   fetchAutobotCount(); 
 
-  const intervalId = setInterval(fetchAutobotCount, 3600000); // 3600000 milliseconds = 1 hour
+ intervalId = setInterval(fetchAutobotCount, 3600000); // 3600000 milliseconds = 1 hour
 
 });
 

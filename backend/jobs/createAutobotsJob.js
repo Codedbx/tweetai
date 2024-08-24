@@ -5,30 +5,21 @@ import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import crypto from 'crypto';
 
-const generateUniqueString = (length) => {
-  return crypto.randomBytes(length).toString('hex');
+const generateUniqueString = (length) => crypto.randomBytes(length).toString('hex');
+
+const fetchData = async (endpoint, count) => {
+  const response = await axios.get(`https://jsonplaceholder.typicode.com/${endpoint}`);
+  return Array(count).fill().map(() => response.data[Math.floor(Math.random() * response.data.length)]);
 };
 
 export const createAutobotsJob = () => {
-  cron.schedule('*/1 * * * *', async () => {
+  cron.schedule('0 * * * *', async () => {
     try {
-      const usersPromises = Array.from({ length: 10 }, (_, i) =>
-        axios.get(`https://jsonplaceholder.typicode.com/users/${i + 1}`)
-      );
-
-      const postsPromises = Array.from({ length: 10 }, (_, j) =>
-        axios.get(`https://jsonplaceholder.typicode.com/posts/${j + 1}`)
-      );
-
-      const commentsPromises = Array.from({ length: 10 }, (_, k) =>
-        axios.get(`https://jsonplaceholder.typicode.com/comments/${k + 1}`)
-      );
-
       const [users, posts, comments] = await Promise.all([
-        Promise.all(usersPromises),
-        Promise.all(postsPromises),
-        Promise.all(commentsPromises),
-      ]).then((results) => results.map((r) => r.map((res) => res.data)));
+        fetchData('users', 10),
+        fetchData('posts', 10),
+        fetchData('comments', 10)
+      ]);
 
       const autobotsData = [];
       const postsData = [];
@@ -36,8 +27,7 @@ export const createAutobotsJob = () => {
 
       for (let i = 0; i < 500; i++) {
         const uniqueSuffix = generateUniqueString(6);
-        const user = users[i % 10]; 
-
+        const user = users[i % 10];
         autobotsData.push({
           name: `${user.name}-${uniqueSuffix}`,
           username: `${user.username}-${uniqueSuffix}`,
@@ -46,31 +36,31 @@ export const createAutobotsJob = () => {
 
         for (let j = 0; j < 10; j++) {
           const postUniqueSuffix = generateUniqueString(6);
-          const post = posts[j % 10]; 
-
+          const post = posts[j % 10];
+          const postId = (i * 10) + j + 1;
           postsData.push({
             title: `${post.title}-${uniqueSuffix}-${postUniqueSuffix}`,
             body: post.body,
-            autobotId: i + 1, 
+            autobotId: i + 1,
           });
 
-          for (let k = 0; k < 10; k++) {
+          commentsData.push(...Array(10).fill().map(() => {
             const commentUniqueSuffix = generateUniqueString(6);
-            const comment = comments[k % 10]; 
-
-            commentsData.push({
+            const comment = comments[Math.floor(Math.random() * 10)];
+            return {
               name: `${comment.name}-${commentUniqueSuffix}`,
               body: comment.body,
-              postId: (i * 10) + j + 1, 
-            });
-          }
+              postId,
+            };
+          }));
         }
       }
 
-      // Insert Autobots, Posts, and Comments in bulk
-      await Autobot.bulkCreate(autobotsData);
-      await Post.bulkCreate(postsData);
-      await Comment.bulkCreate(commentsData);
+      await Promise.all([
+        Autobot.bulkCreate(autobotsData),
+        Post.bulkCreate(postsData),
+        Comment.bulkCreate(commentsData)
+      ]);
 
       console.log('500 Autobots and associated content created!');
     } catch (err) {
